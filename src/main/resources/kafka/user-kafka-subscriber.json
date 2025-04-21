@@ -1,0 +1,9 @@
+{
+  "name":"UnqueBeanName",
+  "id": "userListener",
+  "groupId": "user-group",
+  "topics": ["user-topic", "audit-topic"],
+  "containerFactory": "customKafkaListenerContainerFactory",
+  "concurrency": 3,
+  "clientIdPrefix": "userClient"
+}
