@@ -32,3 +32,5 @@ calculated values:
 10. sendBuffer = if(mmbbc > 131072) 131072 else mmbbc = 131072
 11. receiveBuffer = if(mmbbc > 131072) 131072 else mmbbc = 131072
 12. pollTimeout = requestTimeout + 10000 = 40000
+
+exponential backof formulla = delay = min(initialInterval * multiplier^retryCount, maxInterval)
