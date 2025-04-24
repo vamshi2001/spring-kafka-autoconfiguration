@@ -39,6 +39,10 @@ public class ListenerData {
 
     /** Prefix for the Kafka consumer client ID. Useful for identifying consumers. */
     private String clientIdPrefix;
+    
+    private String businessBean;
+    private String businessMethod;
+    private Integer totalTimeToProcess;
 
     // Getters and Setters
 
@@ -120,6 +124,30 @@ public class ListenerData {
 	}
 	
 	
+	public String getBusinessBean() {
+		return businessBean;
+	}
+
+	public void setBusinessBean(String businessBean) {
+		this.businessBean = businessBean;
+	}
+
+	public String getBusinessMethod() {
+		return businessMethod;
+	}
+
+	public void setBusinessMethod(String businessMethod) {
+		this.businessMethod = businessMethod;
+	}
+
+	public Integer getTotalTimeToProcess() {
+		return totalTimeToProcess;
+	}
+
+	public void setTotalTimeToProcess(Integer totalTimeToProcess) {
+		this.totalTimeToProcess = totalTimeToProcess;
+	}
+
 	public void copy(ListenerData data) throws APIException{
 	    if (data == null) {
 	        throw new APIException("received null to copy listener data", "", 1);
@@ -133,5 +161,8 @@ public class ListenerData {
 	    this.concurrency = data.getConcurrency();
 	    this.autoStartup = data.getAutoStartup();
 	    this.clientIdPrefix = data.getClientIdPrefix();
+	    this.businessBean = data.getBusinessBean();
+	    this.businessMethod = data.getBusinessMethod();
+	    this.totalTimeToProcess = data.getTotalTimeToProcess();
 	}
 }

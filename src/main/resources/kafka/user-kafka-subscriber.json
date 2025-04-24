@@ -5,5 +5,9 @@
   "topics": ["user-topic", "audit-topic"],
   "containerFactory": "customKafkaListenerContainerFactory",
   "concurrency": 3,
-  "clientIdPrefix": "userClient"
+  "clientIdPrefix": "userClient",
+  
+  "businessBean" : "BusinessBeanName",
+  "businessMethod" : "methodName",
+  "totalTimeToProcess" : 50000
 }
