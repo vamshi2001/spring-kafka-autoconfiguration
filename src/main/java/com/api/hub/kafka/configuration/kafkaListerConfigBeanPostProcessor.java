@@ -48,6 +48,7 @@ public class kafkaListerConfigBeanPostProcessor implements BeanPostProcessor {
     		templet.setName(beanName);
     		templet.setTotalTime(listener.getTotalTimeToProcess());
     		templet.setCache(filter);
+    		templet.setThreadPool(listener.getNumberOfThreads());
 			mainListenerDataInstance.copy(listener);
 		} catch (APIException e) {
 			// TODO Auto-generated catch block

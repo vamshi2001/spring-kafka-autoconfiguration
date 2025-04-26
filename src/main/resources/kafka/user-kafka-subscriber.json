@@ -9,5 +9,6 @@
   
   "businessBean" : "BusinessBeanName",
   "businessMethod" : "methodName",
-  "totalTimeToProcess" : 50000
+  "totalTimeToProcess" : 50000,
+  "numberOfThreads" : 40
 }

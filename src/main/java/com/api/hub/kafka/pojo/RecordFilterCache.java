@@ -22,6 +22,10 @@ public class RecordFilterCache {
 		return ListenerFilter.getOrDefault(listener, new Filter());
 	}
 	
+	public Map<String,Filter> getALLFilters(){
+		return ListenerFilter;
+	}
+	
 	
 	public class Filter{
 		private volatile Map<String,ConsumerRecord<String, String>> recordFilterMap = new HashMap<String, ConsumerRecord<String,String>>();

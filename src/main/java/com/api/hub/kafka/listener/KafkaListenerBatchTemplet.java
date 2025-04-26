@@ -113,7 +113,9 @@ public class KafkaListenerBatchTemplet implements DisposableBean{
 						Integer partition = successRecord.partition();
 						Long offset = successRecord.offset();
 						String key = topicName + "-" + partition.toString() + "-" + offset.toString();
-						successRecords.put(key, successRecord);
+						if(isError) {
+							successRecords.put(key, successRecord);
+						}
 					}
 					
 				}

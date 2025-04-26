@@ -9,17 +9,20 @@ import java.util.Map.Entry;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.BeanDefinition;
-import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.context.support.GenericApplicationContext;
+import org.springframework.core.env.Environment;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 import com.api.hub.kafka.common.APIException;
+import com.api.hub.kafka.common.AsyncMessageRecoverer;
 import com.api.hub.kafka.listener.KafkaListenerBatchTemplet;
 import com.api.hub.kafka.pojo.KafkaListenerContainerConfigProperties;
 import com.api.hub.kafka.pojo.ListenerData;
+import com.api.hub.kafka.pojo.RecordFilterCache;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -33,9 +36,6 @@ public class KafkaSubscriberAutoConfig {
 	kafkaListerConfigBeanPostProcessor processor;
 	
 	@Autowired
-	ConfigurableListableBeanFactory ctx;
-	
-	@Autowired
 	GenericApplicationContext ac;
 	
 	@Autowired
@@ -44,21 +44,27 @@ public class KafkaSubscriberAutoConfig {
 	@Autowired
 	ListenerData listenerData;
 	
-	@Value("${directoryPathToScan}")
-	String directoryPath;
-	
 	Map<String,ListenerData> listenerdata;
 	Map<String,KafkaListenerContainerConfigProperties> containerProperties;
+	
+	@Autowired
+	Environment env;
+	
+	@Autowired
+	AsyncMessageRecoverer asr;
+	
+	@Autowired
+	RecordFilterCache cache;
 	
 	private boolean loadListeners() {
 		Map<String,ListenerData> data = new HashMap<String, ListenerData>();
 		try {
 	        ObjectMapper mapper = new ObjectMapper();
 	        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-	        File dir = new File(directoryPath);
+	        File dir = new File(System.getProperty("kafkaPropPath"));
 
 	        if (!dir.exists() || !dir.isDirectory()) {
-	            throw new IllegalArgumentException("Invalid directory: " + directoryPath);
+	            throw new IllegalArgumentException("Invalid directory: " + System.getProperty("kafkaPropPath"));
 	        }
 
 	        File[] jsonFiles = dir.listFiles(new FilenameFilter() {
@@ -100,10 +106,10 @@ public class KafkaSubscriberAutoConfig {
 		try {
 	        ObjectMapper mapper = new ObjectMapper();
 	        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-	        File dir = new File(directoryPath);
+	        File dir = new File(System.getProperty("kafkaPropPath"));
 
 	        if (!dir.exists() || !dir.isDirectory()) {
-	            throw new IllegalArgumentException("Invalid directory: " + directoryPath);
+	            throw new IllegalArgumentException("Invalid directory: " + System.getProperty("kafkaPropPath"));
 	        }
 
 	        File[] jsonFiles = dir.listFiles(new FilenameFilter() {
@@ -140,6 +146,7 @@ public class KafkaSubscriberAutoConfig {
 		return false;
 	}
 
+	@SuppressWarnings("unchecked")
 	@EventListener(ApplicationReadyEvent.class)
 	public void start() throws Exception {
 		boolean proceed = true;
@@ -155,6 +162,21 @@ public class KafkaSubscriberAutoConfig {
 			return;
 		}
 		try {
+			Boolean enableAsyncMessageRecoverer = Boolean.parseBoolean(env.getProperty("AsyncMessageRecoverer") == null ? "false" : env.getProperty("AsyncMessageRecoverer"));
+			if(enableAsyncMessageRecoverer) {
+				boolean publishToTopic = Boolean.parseBoolean(env.getProperty("publishToTopic") == null ? "false" : env.getProperty("publishToTopic"));
+				if(publishToTopic) {
+					asr.setPublishToTopic(true);
+					asr.setDeafaultTopicName(env.getProperty("deafaultTopicName"));
+					asr.setKafkaTemplate((KafkaTemplate<String, String>) ac.getBean(env.getProperty("deafaultTopicName")));
+				}else {
+					asr.setPublishToTopic(false);
+					asr.setBean(env.getProperty("recoverBeanName"));
+					asr.setMethodName("recoverMethodName");
+					asr.setCache(cache);
+				}
+			}
+			
 			for(Entry<String,KafkaListenerContainerConfigProperties> containerData : containerProperties.entrySet()) {
 		        ac.registerBean(containerData.getKey(), ConcurrentKafkaListenerContainerFactory.class);
 			}

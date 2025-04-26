@@ -13,7 +13,7 @@
   "backOffInitialInterval": 1000,
   "backOffMultiplier": 2.0,
   "backOffMaxInterval": 10000,
-  "recoverBeanName": "defaultRecoverer",
+  "recoverBeanName": "AsyncMessageRecoverer",
 
   "maxPollRecords": 500,
   "maxPollInterval": 300000,

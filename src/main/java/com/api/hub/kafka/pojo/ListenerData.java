@@ -43,6 +43,7 @@ public class ListenerData {
     private String businessBean;
     private String businessMethod;
     private Integer totalTimeToProcess;
+    private Integer numberOfThreads;
 
     // Getters and Setters
 
@@ -146,6 +147,14 @@ public class ListenerData {
 
 	public void setTotalTimeToProcess(Integer totalTimeToProcess) {
 		this.totalTimeToProcess = totalTimeToProcess;
+	}
+
+	public Integer getNumberOfThreads() {
+		return numberOfThreads;
+	}
+
+	public void setNumberOfThreads(Integer numberOfThreads) {
+		this.numberOfThreads = numberOfThreads;
 	}
 
 	public void copy(ListenerData data) throws APIException{
