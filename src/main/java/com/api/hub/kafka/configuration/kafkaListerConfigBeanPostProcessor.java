@@ -8,13 +8,17 @@ import org.springframework.beans.FatalBeanException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.context.ApplicationContext;
+import org.springframework.kafka.listener.ConsumerRecordRecoverer;
 import org.springframework.stereotype.Component;
 
 import com.api.hub.kafka.common.APIException;
+import com.api.hub.kafka.common.AsyncMessageRecoverer;
 import com.api.hub.kafka.listener.KafkaListenerBatchTemplet;
+import com.api.hub.kafka.pojo.DataHolder;
 import com.api.hub.kafka.pojo.ListenerData;
 import com.api.hub.kafka.pojo.RecordFilterCache;
 
+import jakarta.annotation.PostConstruct;
 import lombok.NonNull;
 
 @Component("kafkaListerConfigBeanPostProcessor")
@@ -25,6 +29,9 @@ public class kafkaListerConfigBeanPostProcessor implements BeanPostProcessor {
 	
 	@Autowired
 	RecordFilterCache filter;
+	
+	@Autowired
+	AsyncMessageRecoverer recoverer;
 
 	private Map<String,ListenerData> listernerData = new HashMap<String, ListenerData>();
 	@Autowired
@@ -32,6 +39,11 @@ public class kafkaListerConfigBeanPostProcessor implements BeanPostProcessor {
 	
 	public void setListenerDataMap(@NonNull Map<String,ListenerData> listernerData) {
 		this.listernerData.putAll(listernerData);
+	}
+	
+	@PostConstruct
+	public void init() {
+		listernerData.putAll(DataHolder.getListenerData());
 	}
 	
     @Override
@@ -49,8 +61,17 @@ public class kafkaListerConfigBeanPostProcessor implements BeanPostProcessor {
     		templet.setTotalTime(listener.getTotalTimeToProcess());
     		templet.setCache(filter);
     		templet.setThreadPool(listener.getNumberOfThreads());
+    		templet.setFailOnException(listener.isFailOnException());
+    		templet.setFailOnReturn(listener.isFailOnReturn());
+    		String recoveryName = listener.getRecovererName();
+    		if(recoveryName != null && !recoveryName.isBlank()) {
+    			ConsumerRecordRecoverer recvr = (ConsumerRecordRecoverer) ctx.getBean(recoveryName);
+    			for(String topic : listener.getTopics()) {
+    				recoverer.addRecoverer(topic, recvr);
+    			}
+    		}
 			mainListenerDataInstance.copy(listener);
-		} catch (APIException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			throw new FatalBeanException(e.toString());
 		}

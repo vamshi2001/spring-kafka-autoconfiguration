@@ -12,6 +12,7 @@ import java.util.regex.Pattern;
 @Component("ListernerData")
 public class ListenerData {
 	
+	private boolean enabled = false;
 	private String name;
 
     // Core Attributes
@@ -44,6 +45,9 @@ public class ListenerData {
     private String businessMethod;
     private Integer totalTimeToProcess;
     private Integer numberOfThreads;
+    private boolean failOnException;
+    private boolean failOnReturn;
+    private String recovererName;
 
     // Getters and Setters
 
@@ -173,5 +177,39 @@ public class ListenerData {
 	    this.businessBean = data.getBusinessBean();
 	    this.businessMethod = data.getBusinessMethod();
 	    this.totalTimeToProcess = data.getTotalTimeToProcess();
+	    this.failOnException = data.isFailOnException();
+	    this.failOnReturn = data.isFailOnReturn();
+	}
+
+	public boolean isEnabled() {
+		return enabled;
+	}
+
+	public void setEnabled(boolean enabled) {
+		this.enabled = enabled;
+	}
+
+	public boolean isFailOnException() {
+		return failOnException;
+	}
+
+	public void setFailOnException(boolean failOnException) {
+		this.failOnException = failOnException;
+	}
+
+	public boolean isFailOnReturn() {
+		return failOnReturn;
+	}
+
+	public void setFailOnReturn(boolean failOnReturn) {
+		this.failOnReturn = failOnReturn;
+	}
+
+	public String getRecovererName() {
+		return recovererName;
+	}
+
+	public void setRecovererName(String recovererName) {
+		this.recovererName = recovererName;
 	}
 }

@@ -70,6 +70,10 @@ public class KafkaListenerContainerConfigProperties {
     
     private boolean batchMode;
     
+    private boolean fixedBackOff;
+    private long fixedBackOffIntervel;
+    private int fixedBackOffMaxRetries;
+    
     private long backOffInitialInterval;
     
     private double backOffMultiplier;
@@ -83,23 +87,23 @@ public class KafkaListenerContainerConfigProperties {
     /** The maximum number of records returned in a single poll request.
      * Corresponds to: ConsumerConfig.MAX_POLL_RECORDS_CONFIG
      */
-    private long maxPollRecords;
+    private int maxPollRecords;
 
     /** The maximum delay between invocations of poll() before the consumer is considered failed.
      * Corresponds to: ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG
      */
-    private long maxPollInterval;
+    private int maxPollInterval;
 
     /** The timeout used to detect consumer failures when using Kafka's group management.
      * Must be >= group.min.session.timeout.ms && <= group.max.session.timeout.ms in broker config.
      * Corresponds to: ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG
      */
-    private long maxSessionTimeout;
+    private int maxSessionTimeout;
 
     /** The expected time between heartbeats to the consumer group coordinator.
      * Corresponds to: ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG
      */
-    private long heartBeatInterval;
+    private int heartBeatInterval;
 
     /** The protocol type for the consumer group (e.g., "consumer").
      * Corresponds to: ConsumerConfig.GROUP_PROTOCOL_CONFIG
@@ -138,32 +142,32 @@ public class KafkaListenerContainerConfigProperties {
     /** Minimum amount of data the server should return for a fetch request.
      * Corresponds to: ConsumerConfig.FETCH_MIN_BYTES_CONFIG
      */
-    private long fetchMinBytes;
+    private int fetchMinBytes;
 
     /** Maximum amount of data the server should return for a fetch request.
      * Corresponds to: ConsumerConfig.FETCH_MAX_BYTES_CONFIG
      */
-    private long fetchMaxBytes;
+    private int fetchMaxBytes;
 
     /** Maximum time the server will block before answering the fetch request if there isn’t sufficient data.
      * Corresponds to: ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG
      */
-    private long fetchMaxWaitTime;
+    private int fetchMaxWaitTime;
 
     /** Maximum amount of data per partition the server will return in a fetch request.
      * Corresponds to: ConsumerConfig.MAX_PARTITION_FETCH_BYTES_CONFIG
      */
-    private long fetchMaxBytesPerPartition;
+    private int fetchMaxBytesPerPartition;
 
     /** The size of the TCP send buffer (SO_SNDBUF) to use when sending data.
      * Corresponds to: ConsumerConfig.SEND_BUFFER_CONFIG
      */
-    private long sendBuffer;
+    private int sendBuffer;
 
     /** The size of the TCP receive buffer (SO_RCVBUF) to use when reading data.
      * Corresponds to: ConsumerConfig.RECEIVE_BUFFER_CONFIG
      */
-    private long receiveBuffer;
+    private int receiveBuffer;
 
     /** Whether to verify CRCs when reading records from Kafka.
      * Corresponds to: ConsumerConfig.CHECK_CRCS_CONFIG
@@ -188,7 +192,7 @@ public class KafkaListenerContainerConfigProperties {
     /** Maximum amount of time the client will wait for the response of a request.
      * Corresponds to: ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG
      */
-    private long requestTimeout;
+    private int requestTimeout;
 
     /** Optional username for SASL authentication (used in secured clusters).
      * Not directly mapped to ConsumerConfig; used in security configuration.

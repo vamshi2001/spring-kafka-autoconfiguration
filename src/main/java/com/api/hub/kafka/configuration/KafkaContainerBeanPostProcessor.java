@@ -17,15 +17,29 @@ import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.util.backoff.ExponentialBackOff;
+import org.springframework.util.backoff.FixedBackOff;
 
 import com.api.hub.kafka.common.APIException;
+import com.api.hub.kafka.common.AsyncMessageRecoverer;
+import com.api.hub.kafka.listener.BatchInterceptorImpl;
+import com.api.hub.kafka.pojo.DataHolder;
 import com.api.hub.kafka.pojo.KafkaListenerContainerConfigProperties;
+
+import jakarta.annotation.PostConstruct;
 
 @Component
 public class KafkaContainerBeanPostProcessor implements BeanPostProcessor {
 	
 	@Autowired
 	GenericApplicationContext ac;
+	
+	@Autowired
+	AsyncMessageRecoverer recoverer;
+	
+	@PostConstruct
+	public void init() {
+		containerProperties.putAll(DataHolder.getContainerProperties());
+	}
 
 	Map<String,KafkaListenerContainerConfigProperties> containerProperties = new HashMap<String, KafkaListenerContainerConfigProperties>();
 	
@@ -70,17 +84,22 @@ public class KafkaContainerBeanPostProcessor implements BeanPostProcessor {
 	        	factory.setBatchListener(false);
 			}
 	        
-	        ExponentialBackOff backOff = new ExponentialBackOff();
-	        backOff.setInitialInterval(containerProp.getBackOffInitialInterval()); // Start with 1s
-	        backOff.setMultiplier(containerProp.getBackOffMultiplier());        // Double the delay every retry
-	        backOff.setMaxInterval(containerProp.getBackOffMaxInterval());
-	        
-	        ConsumerRecordRecoverer recover = (ConsumerRecordRecoverer) ac.getBean(containerProp.getRecoverBeanName());
-	        
-	        DefaultErrorHandler errorHandler = new DefaultErrorHandler(recover, backOff);
-	        
-	        factory.setCommonErrorHandler(errorHandler);
-	        
+	        if(containerProp.isFixedBackOff()) {
+	        	FixedBackOff backOff = new FixedBackOff();
+	        	backOff.setInterval(0);
+	        	backOff.setMaxAttempts(0);
+	        	DefaultErrorHandler errorHandler = new DefaultErrorHandler(recoverer, backOff);
+	        	factory.setCommonErrorHandler(errorHandler);
+	        }else {
+	        	ExponentialBackOff backOff = new ExponentialBackOff();
+		        backOff.setInitialInterval(containerProp.getBackOffInitialInterval()); // Start with 1s
+		        backOff.setMultiplier(containerProp.getBackOffMultiplier());        // Double the delay every retry
+		        backOff.setMaxInterval(containerProp.getBackOffMaxInterval());
+		        
+		        DefaultErrorHandler errorHandler = new DefaultErrorHandler(recoverer, backOff);
+	        	factory.setCommonErrorHandler(errorHandler);
+			}
+	        factory.setBatchInterceptor(new BatchInterceptorImpl<String, String>());
 	        ContainerProperties containerProps = factory.getContainerProperties();
 
 	        containerProps.setAckMode(containerProp.getAckMode());

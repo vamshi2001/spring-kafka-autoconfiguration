@@ -6,9 +6,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.beans.factory.support.BeanDefinitionRegistry;
+import org.springframework.beans.factory.support.BeanDefinitionRegistryPostProcessor;
+import org.springframework.beans.factory.support.GenericBeanDefinition;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.context.support.GenericApplicationContext;
@@ -20,6 +25,7 @@ import org.springframework.stereotype.Component;
 import com.api.hub.kafka.common.APIException;
 import com.api.hub.kafka.common.AsyncMessageRecoverer;
 import com.api.hub.kafka.listener.KafkaListenerBatchTemplet;
+import com.api.hub.kafka.pojo.DataHolder;
 import com.api.hub.kafka.pojo.KafkaListenerContainerConfigProperties;
 import com.api.hub.kafka.pojo.ListenerData;
 import com.api.hub.kafka.pojo.RecordFilterCache;
@@ -30,31 +36,10 @@ import lombok.extern.slf4j.Slf4j;
 
 @Component
 @Slf4j
-public class KafkaSubscriberAutoConfig {
+public class KafkaSubscriberAutoConfig implements BeanDefinitionRegistryPostProcessor{
 	
-	@Autowired
-	kafkaListerConfigBeanPostProcessor processor;
-	
-	@Autowired
-	GenericApplicationContext ac;
-	
-	@Autowired
-	KafkaContainerBeanPostProcessor containerProcessor;
-	
-	@Autowired
-	ListenerData listenerData;
-	
-	Map<String,ListenerData> listenerdata;
-	Map<String,KafkaListenerContainerConfigProperties> containerProperties;
-	
-	@Autowired
-	Environment env;
-	
-	@Autowired
-	AsyncMessageRecoverer asr;
-	
-	@Autowired
-	RecordFilterCache cache;
+	Map<String,ListenerData> listenerData = new HashMap<String, ListenerData>();
+	Map<String,KafkaListenerContainerConfigProperties> containerProperties = new HashMap<String, KafkaListenerContainerConfigProperties>();
 	
 	private boolean loadListeners() {
 		Map<String,ListenerData> data = new HashMap<String, ListenerData>();
@@ -94,8 +79,8 @@ public class KafkaSubscriberAutoConfig {
 			return false;
 		}
 		if(data.size() > 0) {
-			processor.setListenerDataMap(data);
-			listenerdata.putAll(data);
+			DataHolder.putListenerData(data);
+			listenerData.putAll(data);
 			return true;
 		}
 		return false;
@@ -139,16 +124,15 @@ public class KafkaSubscriberAutoConfig {
 			return false;
 		}
 		if(data.size() > 0) {
+			DataHolder.putContainerProperties(data);
 			containerProperties.putAll(data);
-			containerProcessor.setContainerProperties(data);
 			return true;
 		}
 		return false;
 	}
 
 	@SuppressWarnings("unchecked")
-	@EventListener(ApplicationReadyEvent.class)
-	public void start() throws Exception {
+	public void start(BeanDefinitionRegistry ac) throws Exception {
 		boolean proceed = true;
 		proceed = loadContainers();
 		if(!proceed) {
@@ -162,36 +146,36 @@ public class KafkaSubscriberAutoConfig {
 			return;
 		}
 		try {
-			Boolean enableAsyncMessageRecoverer = Boolean.parseBoolean(env.getProperty("AsyncMessageRecoverer") == null ? "false" : env.getProperty("AsyncMessageRecoverer"));
-			if(enableAsyncMessageRecoverer) {
-				boolean publishToTopic = Boolean.parseBoolean(env.getProperty("publishToTopic") == null ? "false" : env.getProperty("publishToTopic"));
-				if(publishToTopic) {
-					asr.setPublishToTopic(true);
-					asr.setDeafaultTopicName(env.getProperty("deafaultTopicName"));
-					asr.setKafkaTemplate((KafkaTemplate<String, String>) ac.getBean(env.getProperty("deafaultTopicName")));
-				}else {
-					asr.setPublishToTopic(false);
-					asr.setBean(env.getProperty("recoverBeanName"));
-					asr.setMethodName("recoverMethodName");
-					asr.setCache(cache);
-				}
-			}
 			
 			for(Entry<String,KafkaListenerContainerConfigProperties> containerData : containerProperties.entrySet()) {
-		        ac.registerBean(containerData.getKey(), ConcurrentKafkaListenerContainerFactory.class);
-			}
-			for(Entry<String,ListenerData> listener : listenerdata.entrySet()) {
-				
-				ac.registerBean(listener.getKey(), KafkaListenerBatchTemplet.class, (BeanDefinition bd) ->{
-					bd.setScope("singleton");
-					bd.setDependsOn(listener.getValue().getContainerFactory());
-				});
+				GenericBeanDefinition beanDefination = new GenericBeanDefinition();
+				beanDefination.setBeanClass(ConcurrentKafkaListenerContainerFactory.class);
+		        ac.registerBeanDefinition(containerData.getKey(), beanDefination);
 			}
 			
-			ac.refresh();
+			for(Entry<String,ListenerData> listener : listenerData.entrySet()) {
+				if(!listener.getValue().isEnabled()) {
+					continue;
+				}
+				GenericBeanDefinition beanDefination = new GenericBeanDefinition();
+				beanDefination.setBeanClass(KafkaListenerBatchTemplet.class);
+				beanDefination.setScope("singleton");
+				beanDefination.setDependsOn(listener.getValue().getContainerFactory(), listener.getValue().getRecovererName());
+				ac.registerBeanDefinition(listener.getKey(), beanDefination);
+			}
 			
 		}catch (Exception e) {
 			throw new APIException("unable to register container/listeners in application context", e.getMessage(), 3);
 		}
+	}
+
+	@Override
+	public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) throws BeansException {
+		try {
+			start(registry);
+		}catch (Exception e) {
+			throw new BeanCreationException("unable to register beans "+e.getMessage());
+		}
+		
 	}
 }
